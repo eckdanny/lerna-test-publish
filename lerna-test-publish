@@ -1,0 +1,111 @@
+#!/usr/bin/env bash
+#
+# TODO: accept --name flag => verdaccio container name
+# TODO: accept *args to splat onto `lerna publish`
+# TODO: maybe don't assume yarn
+# TODO: perform the build in a container instead of on the host machine
+# TODO: serve the CHANGELOGs (or maybe a the entire diff)
+
+
+PROJ_NAME=$(basename $PWD)
+DIRNAME=
+V_CONTAINER_NAME=$PROJ_NAME.verdaccio
+V_PORT=4873
+
+
+function cleanup {
+  echo
+
+  if ( $(docker container inspect "$V_CONTAINER_NAME" > /dev/null 2>&1) ); then
+    echo -n "Removing docker container "
+    docker container stop $V_CONTAINER_NAME
+  fi
+
+  if [[ $(git ls-files -o --exclude-standard | grep "" -c) ]]; then
+    echo
+    git clean -f
+  fi
+
+  dirty=( $(git ls-files -m '**/package.json' 'lerna.json') )
+  for file in "${dirty[@]}"; do
+    echo "Reverting ${file}"
+  done
+  git checkout -q ${dirty[@]}
+
+  echo
+  echo "$(basename $0) completed successfully"
+}
+
+function set_dirname {
+  local SOURCE="${BASH_SOURCE[0]}"
+  local DIR=
+  while [ -h "$SOURCE" ]; do
+    DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
+    SOURCE="$(readlink "$SOURCE")"
+    [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+  done
+  DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
+  DIRNAME=$DIR
+}
+
+
+trap cleanup EXIT INT TERM
+
+# Retrieve dirname
+set_dirname
+
+# Start verdaccio
+docker run \
+  --detach \
+  --rm \
+  --name $V_CONTAINER_NAME \
+  --publish $V_PORT:4873 \
+  --volume $DIRNAME/verdaccio/conf:/verdaccio/conf \
+  verdaccio/verdaccio
+
+# No compilation needed, but do it here if needed later ??
+
+# Publish to Verdaccio
+yarn lerna publish \
+  --conventional-commits \
+  --changelog-preset angular-bitbucket \
+  --exact \
+  --graph-type all \
+  --force-publish \
+  --no-git-reset \
+  --no-git-tag-version \
+  --no-push \
+  --allow-branch '*' \
+  --registry http://0.0.0.0:$V_PORT \
+  --dist-tag next \
+  --yes
+
+[ $? -eq 0 ] || exit $?
+  
+
+echo
+echo "SUCCESS"
+cat << EOF
+
+Packages published here: http://0.0.0.0:${V_PORT}
+
+You can check the local CHANGELOG, manually validate the publish process, or
+start a connected docker container to try out your packages:
+
+  docker run \\
+    --interactive \\
+    --tty \\
+    --rm \\
+    --workdir /home \\
+    --link ${V_CONTAINER_NAME}:pkgs \\
+    --env YARN_REGISTRY=http://pkgs:${V_PORT} \\
+    --env NPM_CONFIG_REGISTRY=http://pkgs:${V_PORT} \\
+    node:lts bash
+
+I'll do my best to restore your repository state when you've finished.
+
+EOF
+
+echo
+
+read -p 'Continue?'
