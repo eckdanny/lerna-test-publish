@@ -14,6 +14,7 @@ V_PORT=4873
 
 
 function cleanup {
+  EXIT_CODE=$1
   echo
 
   if ( $(docker container inspect "$V_CONTAINER_NAME" > /dev/null 2>&1) ); then
@@ -33,7 +34,12 @@ function cleanup {
   git checkout -q ${dirty[@]}
 
   echo
-  echo "$(basename $0) completed successfully"
+  if [[ "$EXIT_CODE" -ne 0 ]]; then
+    echo "$(basename $0) exited with an error"
+  else
+    echo "$(basename $0) completed successfully"
+  fi
+  exit $EXIT_CODE
 }
 
 function set_dirname {
@@ -49,7 +55,7 @@ function set_dirname {
 }
 
 
-trap cleanup EXIT INT TERM
+trap cleanup INT TERM
 
 # Retrieve dirname
 set_dirname
@@ -80,8 +86,7 @@ yarn lerna publish \
   --dist-tag next \
   --yes
 
-[ $? -eq 0 ] || exit $?
-  
+[[ "$?" -eq 0 ]] || cleanup ${?}
 
 echo
 echo "SUCCESS"
@@ -109,3 +114,5 @@ EOF
 echo
 
 read -p 'Continue?'
+
+cleanup 0
