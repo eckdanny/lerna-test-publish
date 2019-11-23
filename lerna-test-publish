@@ -60,6 +60,9 @@ trap cleanup INT TERM
 # Retrieve dirname
 set_dirname
 
+# Get current image
+docker pull verdaccio/verdaccio:4
+
 # Start verdaccio
 docker run \
   --detach \
