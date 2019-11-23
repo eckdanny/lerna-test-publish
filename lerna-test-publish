@@ -1,10 +1,4 @@
 #!/usr/bin/env bash
-#
-# TODO: accept --name flag => verdaccio container name
-# TODO: accept *args to splat onto `lerna publish`
-# TODO: maybe don't assume yarn
-# TODO: perform the build in a container instead of on the host machine
-# TODO: serve the CHANGELOGs (or maybe a the entire diff)
 
 
 PROJ_NAME=$(basename $PWD)
