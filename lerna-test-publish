@@ -70,17 +70,12 @@ docker run \
 
 # Publish to Verdaccio
 yarn lerna publish \
-  --conventional-commits \
-  --changelog-preset angular-bitbucket \
-  --exact \
-  --graph-type all \
-  --force-publish \
   --no-git-reset \
   --no-git-tag-version \
   --no-push \
+  --no-verify-access \
   --allow-branch '*' \
   --registry http://0.0.0.0:$V_PORT \
-  --dist-tag next \
   --yes
 
 [[ "$?" -eq 0 ]] || cleanup ${?}
