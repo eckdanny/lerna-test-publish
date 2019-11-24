@@ -78,7 +78,7 @@ docker run \
   --name $V_CONTAINER_NAME \
   --publish $V_PORT:4873 \
   --volume $DIRNAME/verdaccio/conf:/verdaccio/conf \
-  verdaccio/verdaccio
+  verdaccio/verdaccio:4
 
 # No compilation needed, but do it here if needed later ??
 
