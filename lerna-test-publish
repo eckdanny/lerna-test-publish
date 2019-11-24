@@ -3,6 +3,7 @@
 
 PROJ_NAME=$(basename $PWD)
 DIRNAME=
+V_IMAGE=verdaccio/verdaccio:4
 V_CONTAINER_NAME=$PROJ_NAME.verdaccio
 V_PORT=4873
 NPM_CLIENT=
@@ -69,16 +70,20 @@ set_dirname
 set_npm_client
 
 # Get current image
-docker pull verdaccio/verdaccio:4
+echo "Updating docker image..."
+docker pull $V_IMAGE
+echo
 
 # Start verdaccio
+echo "Starting docker container..."
 docker run \
   --detach \
   --rm \
   --name $V_CONTAINER_NAME \
   --publish $V_PORT:4873 \
   --volume $DIRNAME/verdaccio/conf:/verdaccio/conf \
-  verdaccio/verdaccio:4
+  $V_IMAGE
+echo
 
 # No compilation needed, but do it here if needed later ??
 
