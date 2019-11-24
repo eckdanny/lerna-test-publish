@@ -5,6 +5,8 @@ PROJ_NAME=$(basename $PWD)
 DIRNAME=
 V_CONTAINER_NAME=$PROJ_NAME.verdaccio
 V_PORT=4873
+NPM_CLIENT=
+NPM_EXEC=
 
 
 function cleanup {
@@ -48,11 +50,23 @@ function set_dirname {
   DIRNAME=$DIR
 }
 
+function set_npm_client {
+  NPM_CLIENT=$(node -e "process.stdout.write(require('./lerna').npmClient || 'npm')")
+  if [[ "$NPM_CLIENT" -eq "npm" ]]; then
+    NPM_EXEC="npx --no-install"
+  else
+    NPM_EXEC="${NPM_CLIENT}"
+  fi
+}
+
 
 trap cleanup INT TERM
 
 # Retrieve dirname
 set_dirname
+
+# Set npmClient
+set_npm_client
 
 # Get current image
 docker pull verdaccio/verdaccio:4
@@ -69,7 +83,7 @@ docker run \
 # No compilation needed, but do it here if needed later ??
 
 # Publish to Verdaccio
-yarn lerna publish \
+$NPM_EXEC lerna publish \
   --no-git-reset \
   --no-git-tag-version \
   --no-push \
